@@ -7,10 +7,10 @@ name = "vasp-utilities"
 version = "0.1.0"
 description = "Utilities/functions for use in VASP calculations like convergence and optimisation"
 authors = [
-    {name = "Shriyans Thakur" email = "shriyansthakur@gmail.com"}
+    {name = "Shriyans Thakur", email = "shriyansthakur@gmail.com"}
 ]
 maintainers = [
-    {name = "Shriyans Thakur" email = "shriyansthakur@gmail.com"}
+    {name = "Shriyans Thakur" ,email = "shriyansthakur@gmail.com"}
 ]
 readme = "README.md"
 requires-python = ">=3.12"
