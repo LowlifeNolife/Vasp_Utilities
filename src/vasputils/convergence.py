@@ -24,7 +24,7 @@ from ase import Atoms
 class encut_convergence():
     def __init__(self,materials_id : (str | list[str]),
                  encut_criteria : list[int],incar_tags : dict,
-                 kpoints : (str | list[str]),mp_api_key : str,kpoints_type : (str | list[str])) -> None:
+                 mp_api_key : str,kpoints_type : (str | list[str]),kpoints : str | list[str] | None = None) -> None:
         
         if isinstance(kpoints,str):
             kpoints = [kpoints]
@@ -93,7 +93,7 @@ class encut_convergence():
             ptcr = Potcar(symbols=symbols,functional="PBE_54")
             ptcr.write_file(potcar_path)  
  
-    def setup_material_encut_directories(self,path :Path | str |None = None):
+    def setup_material_encut_directories(self,path :Path | str | None = None):
     
         if path is None: 
            path = Path.cwd()
@@ -114,4 +114,21 @@ class encut_convergence():
            self.construct_encut_directories(struct,base_path,
                                             self.kpoints[id],self.kpoints_mesh_type[id])
     
-        
+class kpoints_convergence():
+    def __init__(self,materials_id : (str|list[str]),mp_api_key : str,incar_tags : dict,
+            encut : int,kpoints :str | list[str] | None = None,kpoints_type : str | list[str] | None = None) -> None:
+         if isinstance(kpoints,str):
+            kpoints = [kpoints]
+         if isinstance(kpoints_type,str):
+            kpoints_type = [kpoints_type]
+         if isinstance(materials_id,str):
+            materials_id = [materials_id]
+         self.materials_id = materials_id
+         self.mp_api_key = mp_api_key
+         self.incar_tags = incar_tags
+         self.encut = encut
+         self.structures = {}
+         self.kpoints = {}
+         self.kpoints_mesh_type = {}
+         if not (len(self.materials_id)== len(kpoints)== len(kpoints_type)):
+             raise ValueError("Inconsistent lengths for materials_id, kpoints, and kpoints_type")
