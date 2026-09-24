@@ -9,12 +9,13 @@ from mp_api.client import MPRester
 
 from math import gcd
 from functools import reduce
+from ast import literal_eval
 
 from pymatgen.core import Structure
 from pymatgen.io.ase import AseAtomsAdaptor
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
-import vasputils.constants as const
+import constants as const
 
 class QueryError(Exception):
     """Custom exception for query errors."""
@@ -110,14 +111,17 @@ def modify_incar_for_material_type_relaxation(incar : dict, material_type : str)
     Returns:
         The updated INCAR settings based on the material type.
     """
+    incar = incar.copy()
     if material_type == "metal":
-        return {**incar, **const.metal_relaxation}
+        incar.update(const.metal_relaxation)
     elif material_type == "semiconductor":
-        return {**incar, **const.semiconductor_relaxation}
+        incar.update(const.semiconductor_relaxation)
     elif material_type == "insulator":
-        return {**incar, **const.insulator_relaxation}
+        incar.update(const.insulator_relaxation)
     else:
         raise ValueError(f"Unknown material type: {material_type}")
+    
+    return incar
 
 class incar:
     def __init__(self,path : str | Path | None = None,base_dict : None | dict = const.convergence_incar_template,**kwargs):
@@ -136,6 +140,11 @@ class incar:
             for key, value in self.settings.items():
                 if isinstance(value,bool):
                     value = ".TRUE." if value else ".FALSE."
+                if isinstance(value,list):
+                    if all(isinstance(x,bool) for x in value):
+                        value = " ".join(list(map(lambda x: ".TRUE." if x else ".FALSE.",value)))
+                    else:
+                        value = " ".join(map(str,value))
                 f.write(f"{key} = {value}\n")
 
     def incar_update_dict(self, dict_to_add : dict): # might be redundant but useful for inplace editing.
@@ -146,7 +155,64 @@ class incar:
 
     def get_incar_settings(self) -> dict:
         return self.settings
+    
+    def remove_incar_tags_manually(self,tags : str | list[str]) -> None:
+        if isinstance(tags,str):
+            tags = [tags]
+        flag = 1
+        for tag in tags:
+            try: 
+                del self.settings[tag]
+            except KeyError:
+                print(f'INCAR tag "{tag}" not present, skipping to next in list \n')
+                flag = 0
+                continue
+        if not flag:
+            print("Next time, please check if the tag you provided is appropriate, somethings might not be specified")
+    
+def add_or_update_incar_tags_manually(self, tags: str | list[str]) -> None:
 
+    if isinstance(tags, str):
+        tags = [tags]
+
+    print("Note: For INCAR tags with multiple inputs on one line like ", 
+          "LATTICE_CONSTRAINTS,\n", 
+          "please enter the inputs as a list, e.g. [T, T, F].\n")
+
+    for tag in tags:
+
+        true_tag = tag.upper()
+
+        value = input(f"enter {true_tag} value (for True and False enter T/True and F/False): ").strip()
+
+        if value.startswith("[") and value.endswith("]"):
+
+            items = value[1:-1].split(",")
+            value = []
+
+            for x in items:
+
+                x = x.strip()
+
+                if x.lower() in ("t", "true"):
+                    value.append(True)
+
+                elif x.lower() in ("f", "false"):
+                    value.append(False)
+
+                else:
+                    value.append(literal_eval(x))
+
+        else:
+
+            if value.lower() in ("t", "true"):
+                value = True
+
+            elif value.lower() in ("f", "false"):
+                value = False
+
+        self.settings[true_tag] = value
+                          
 def get_kpoints_mesh_type_and_structure(mp_id : str | list[str],mp_api_key :str,MK_Pack_override : str | None = True) -> tuple[Structure,dict,str]:
         
     with MPRester(mp_api_key) as mpr:

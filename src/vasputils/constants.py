@@ -116,6 +116,7 @@ spin_polarisation = {
     # Add MAGMOM separately according to the system.
 }
 
+
 convergence_incar_template = {
     # System & Precision Info
     "SYSTEM": "Unknown_Material_Convergence_Test",
