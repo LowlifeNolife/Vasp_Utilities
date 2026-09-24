@@ -7,8 +7,14 @@ Things to do :
 (1) Make sure POTCAR files can be customised. Can add an attribute for POTCAR pseudopotential type.
 (2) How to automate this further, lets just see.
 (3) By week end, want some results for band structure atleast. This one is personal
+(4) Add a preprocessing step
 
+Note : Am adding a POTCAR map as monkey wrench fix 
 """
+POTCAR_MAP = {
+    "Nb": "Nb_pv",
+}
+
 import subprocess
 import os
 from pathlib import Path
@@ -90,6 +96,7 @@ class encut_convergence():
             
             potcar_path = encut_path / "POTCAR"
             symbols = pscr.site_symbols
+            symbols = symbols = [POTCAR_MAP.get(symbol, symbol) for symbol in pscr.site_symbols]
             ptcr = Potcar(symbols=symbols,functional="PBE_54")
             ptcr.write_file(potcar_path)  
  
