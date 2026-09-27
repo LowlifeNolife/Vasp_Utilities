@@ -15,7 +15,7 @@ from pymatgen.core import Structure
 from pymatgen.io.ase import AseAtomsAdaptor
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
-import constants as const
+from . import constants as const
 
 class QueryError(Exception):
     """Custom exception for query errors."""
@@ -33,23 +33,25 @@ def obtain_material_type(mp_api_key : str,mp_id :str,semiconductor_threshold :fl
         semiconductor_threshold: The threshold for 
         classifying a material as a semiconductor.
     """
+    
 
     with MPRester(mp_api_key) as mpr:
         try:
-            docs = mpr.materials.summary.search(fields=["material_id", "formula_pretty",
-                                                    "band_gap"])
+            docs = mpr.materials.summary.search(material_ids = [mp_id],fields=["material_id", "formula_pretty",
+                                                    "band_gap","is_metal"])
         except Exception as e:
             raise QueryError(f"Error querying Materials Project: {e}")
 
         band_gap = docs[0].band_gap
+        is_metal = docs[0].is_metal
 
-        if band_gap == 0:
+        if is_metal:
             return "metal"
         elif band_gap < semiconductor_threshold:
             return "semiconductor"
         else:
             return "insulator"
-
+        
 def classify_materials(mp_api_key : str, mp_ids : list[str], semiconductor_threshold : float = 1.5) -> tuple[dict]:
     """
     Classifies a list of materials as metals, semiconductors, or insulators
@@ -123,7 +125,7 @@ def modify_incar_for_material_type_relaxation(incar : dict, material_type : str)
     
     return incar
 
-class incar:
+class INCAR:
     def __init__(self,path : str | Path | None = None,base_dict : None | dict = const.convergence_incar_template,**kwargs):
         self.settings = base_dict.copy() if base_dict is not None else {} 
         self.settings.update(kwargs) # store the settings as a dictionary. CAN specify as many arugments.
@@ -170,53 +172,51 @@ class incar:
         if not flag:
             print("Next time, please check if the tag you provided is appropriate, somethings might not be specified")
     
-def add_or_update_incar_tags_manually(self, tags: str | list[str]) -> None:
+    def add_or_update_incar_tags_manually(self, tags: str | list[str]) -> None:
 
-    if isinstance(tags, str):
-        tags = [tags]
-
-    print("Note: For INCAR tags with multiple inputs on one line like ", 
-          "LATTICE_CONSTRAINTS,\n", 
-          "please enter the inputs as a list, e.g. [T, T, F].\n")
-
-    for tag in tags:
-
-        true_tag = tag.upper()
-
-        value = input(f"enter {true_tag} value (for True and False enter T/True and F/False): ").strip()
-
-        if value.startswith("[") and value.endswith("]"):
-
-            items = value[1:-1].split(",")
-            value = []
-
-            for x in items:
-
-                x = x.strip()
-
-                if x.lower() in ("t", "true"):
-                    value.append(True)
-
-                elif x.lower() in ("f", "false"):
-                    value.append(False)
-
-                else:
-                    value.append(literal_eval(x))
-
-        else:
-
-            if value.lower() in ("t", "true"):
-                value = True
-
-            elif value.lower() in ("f", "false"):
-                value = False
-
-        self.settings[true_tag] = value
+        if isinstance(tags, str):
+            tags = [tags]
     
-    def __getattribute__(self,name):
-        return super().__getattribute__(name)
+        print("Note: For INCAR tags with multiple inputs on one line like ", 
+              "LATTICE_CONSTRAINTS,\n", 
+              "please enter the inputs as a list, e.g. [T, T, F].\n")
+    
+        for tag in tags:
+        
+            true_tag = tag.upper()
+    
+            value = input(f"enter {true_tag} value (for True and False enter T/True and F/False): ").strip()
+    
+            if value.startswith("[") and value.endswith("]"):
+            
+                items = value[1:-1].split(",")
+                value = []
+    
+                for x in items:
+                
+                    x = x.strip()
+    
+                    if x.lower() in ("t", "true"):
+                        value.append(True)
+    
+                    elif x.lower() in ("f", "false"):
+                        value.append(False)
+    
+                    else:
+                        value.append(literal_eval(x))
+    
+            else:
+            
+                if value.lower() in ("t", "true"):
+                    value = True
+    
+                elif value.lower() in ("f", "false"):
+                    value = False
+    
+        self.settings[true_tag] = value
+
                           
-def get_kpoints_mesh_type_and_structure(mp_id : str | list[str],mp_api_key :str,MK_Pack_override : str | None = True) -> tuple[Structure,dict,str]:
+def get_kpoints_mesh_type_and_structure(mp_id : str | list[str],mp_api_key :str,MK_Pack_override : bool | None = True) -> tuple[Structure,dict,str]:
         
     with MPRester(mp_api_key) as mpr:
         struct = mpr.get_structure_by_material_id(mp_id)
