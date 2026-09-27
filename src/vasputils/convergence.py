@@ -26,10 +26,11 @@ from pymatgen.core import Structure
 from pymatgen.io.vasp import Kpoints,Poscar,Potcar
 from pymatgen.io.ase import AseAtomsAdaptor
 from ase import Atoms
-from preprocessing import incar,get_kpoints_mesh_type_and_structure,modify_incar_for_material_type_relaxation,obtain_material_type
-class encut_convergence():
+from preprocessing import incar,get_kpoints_mesh_type_and_structure,modify_incar_for_material_type_relaxation,obtain_material_type,check_parity
+
+class initial_encut_convergence():
     def __init__(self,materials_id : (str | list[str]),
-                 encut_criteria : list[int],incar_tags : dict | None,
+                 encut_criteria : list[int],incar_tags : dict[str, str | int | list[int | bool] | bool] | None,
                  mp_api_key : str,MK_Pack_override: bool = True) -> None:
         
         if isinstance(kpoints,str):
@@ -93,7 +94,9 @@ class encut_convergence():
                     o.write(f"{name} = {type}\n")
             
             kpoints_path =  encut_path / "KPOINTS"
-            kpts = list(map(int,kpoints.split("x")))
+            kpts = list(map(int, kpoints.split("x")))
+            if not check_parity(kpoints):
+                kpts = [k + 1 if k % 2 != kpts[0] % 2 else k for k in kpts]
             kp = Kpoints(comment = "Kpoints for this ENCUT convergence",
                          style = kpoints_type,kpts = [kpts],
                          kpts_shift=(0,0,0))
@@ -134,7 +137,70 @@ class encut_convergence():
            self.construct_encut_directories(struct,base_path,
                                             self.kpoints[id],self.kpoints_mesh_type[id],self.material_types[id])
     
+    def __getattribute__(self,name):
+         return super().__getattribute__(name)
+    
 class kpoints_convergence():
-    def __init__():
-        pass
+    """
+    This is a method for setting up KPOINTS convergence for one given material with a given structure, can be easily looped over!
+    As we will be doing mostly KPOINTS convergence ---> Structure Relaxation -----> Band Gap after initial ENCUT values have been obtained,
+    We need not create a overly complicated class to automate everything, can retrieve initial kpoints mesh and all
+    
+    """
+    def __init__(self, struct: Structure, kpoints_mesh: list[str] | str,
+                 kpoints_mesh_type: str, encut: int, incar_tags: dict | None):
+
+        self.structure = struct
+
+        if isinstance(kpoints_mesh, str):
+            kpoints_mesh = [kpoints_mesh]
+
+        self.mesh = kpoints_mesh
+        self.mesh_type = kpoints_mesh_type
+        self.encut = encut
+        self.incar = incar_tags
+
+    def construct_kpoints_directories(self, path: Path | str | None = None):
+
+        if path is None:
+            path = Path.cwd()
+        elif isinstance(path, str):
+            path = Path(path)
+
+        name = self.structure.composition.reduced_formula
+        base_path = path / name
+        base_path.mkdir(parents=True, exist_ok=True)
+
+        for mesh in self.mesh:
+            kpoint_path = base_path / mesh
+            kpoint_path.mkdir(parents=True, exist_ok=True)
+
+            incar = self.incar.copy() if self.incar is not None else {}
+            incar["ENCUT"] = self.encut
+
+            with open(kpoint_path / "INCAR", "w") as o:
+                for tag, value in incar.items():
+                    o.write(f"{tag} = {value}\n")
+
+            kpts = list(map(int, mesh.split("x")))
+
+            kp = Kpoints(
+                comment="Kpoints for this K-point convergence",
+                style=self.mesh_type,
+                kpts=[kpts],
+                kpts_shift=(0, 0, 0)
+            )
+            kp.write_file(kpoint_path / "KPOINTS")
+
+            pscr = Poscar(
+                structure=self.structure,
+                comment=f"POSCAR file for {name}"
+            )
+            pscr.write_file(kpoint_path / "POSCAR")
+
+            symbols = [POTCAR_MAP.get(symbol, symbol)
+                       for symbol in pscr.site_symbols]
+
+            ptcr = Potcar(symbols=symbols, functional="PBE_54")
+            ptcr.write_file(kpoint_path / "POTCAR")
     

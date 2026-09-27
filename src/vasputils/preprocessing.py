@@ -253,3 +253,12 @@ def get_kpoints_mesh_type_and_structure(mp_id : str | list[str],mp_api_key :str,
 
 
     return struct,mesh,mesh_type
+
+def check_parity(kpoints) -> bool:
+    l = [int(x) for x in kpoints.split("x")]
+
+    for i, j in zip(l, l[1:]):
+        if i % 2 != j % 2:
+            return False
+
+    return True
