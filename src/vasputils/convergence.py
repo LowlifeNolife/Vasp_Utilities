@@ -29,6 +29,10 @@ from ase import Atoms
 from preprocessing import incar,get_kpoints_mesh_type_and_structure,modify_incar_for_material_type_relaxation,obtain_material_type,check_parity
 
 class initial_encut_convergence():
+    """
+    A function to run ALL encut convergences on various materials to save time and get appropriate convergence values.
+    Use this for initial ENCUT values for calculations.
+    """
     def __init__(self,materials_id : (str | list[str]),
                  encut_criteria : list[int],incar_tags : dict[str, str | int | list[int | bool] | bool] | None,
                  mp_api_key : str,MK_Pack_override: bool = True) -> None:
