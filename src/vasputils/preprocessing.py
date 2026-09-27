@@ -212,6 +212,9 @@ def add_or_update_incar_tags_manually(self, tags: str | list[str]) -> None:
                 value = False
 
         self.settings[true_tag] = value
+    
+    def __getattribute__(self,name):
+        return super().__getattribute__(name)
                           
 def get_kpoints_mesh_type_and_structure(mp_id : str | list[str],mp_api_key :str,MK_Pack_override : str | None = True) -> tuple[Structure,dict,str]:
         
