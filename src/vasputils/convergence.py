@@ -50,6 +50,8 @@ class initial_encut_convergence():
         self.kpoints = {}
         self.kpoints_mesh_type = {}
         self.material_types = {}
+        self.names = {}
+        
         
         
 
@@ -63,6 +65,7 @@ class initial_encut_convergence():
             self.structures[material_id] = struct
             self.kpoints[material_id] = mesh
             self.kpoints_mesh_type[material_id] = mesh_type
+            self.names[material_id] = struct.composition.reduced_formula
         
         for material_id in self.materials_id:
             type = obtain_material_type(self.mp_api_key,
@@ -94,7 +97,7 @@ class initial_encut_convergence():
             kpoints_path =  encut_path / "KPOINTS"
             kpts = list(map(int, kpoints.split("x")))
             if not check_parity(kpoints):
-                kpts = [k + 1 if k % 2 != kpts[0] % 2 else k for k in kpts]
+                kpts = [2*k for k in kpoints]
             kp = Kpoints(comment = "Kpoints for this ENCUT convergence",
                          style = kpoints_type,kpts = [kpts],
                          kpts_shift=(0,0,0))
