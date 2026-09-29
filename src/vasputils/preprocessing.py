@@ -7,7 +7,7 @@ Use the functions here for the same!
 from pathlib import Path
 from mp_api.client import MPRester
 
-from math import gcd
+from math import gcd,ceil
 from functools import reduce
 from ast import literal_eval
 
@@ -224,8 +224,8 @@ def get_kpoints_mesh_type_and_structure(mp_id : str | list[str],mp_api_key :str,
     real_lengths = struct.lattice.abc
     reciprocal_lengths = struct.lattice.reciprocal_lattice.abc
 
-    real_lengths = [round(x) for x in real_lengths]
-    reciprocal_lengths = [round(x) for x in reciprocal_lengths]
+    real_lengths = [max(1,round(x)) for x in real_lengths]
+    reciprocal_lengths = [max(1,round(x)) for x in reciprocal_lengths]
 
     abc_lcm = reduce(lambda x,y : x*y // gcd(x,y),real_lengths)
     realspace_ratio = [abc_lcm // k for k in real_lengths]
