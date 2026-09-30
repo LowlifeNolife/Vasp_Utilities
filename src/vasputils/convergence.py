@@ -51,7 +51,7 @@ class initial_encut_convergence():
         self.kpoints_mesh_type = {}
         self.material_types = {}
         self.names = {}
-        
+        self.incar_settings_for_each_element = {}
         
         
 
@@ -72,7 +72,28 @@ class initial_encut_convergence():
                                         mp_id=material_id)
             
             self.material_types[material_id] = type
-    
+        
+    def respecify_kpoints_and_type_manually(self, el_name: str | list[str], specify_mesh_type: bool = False):
+
+        if isinstance(el_name, str):
+            el_name = [el_name]
+
+        for k in el_name:
+
+            key = next(id for id, NAME in self.names.items() if k == NAME)
+
+            print(f"KPOINTS mesh for {self.names[key]} is {self.kpoints[key]} and type is {self.kpoints_mesh_type[key]}.")
+            mesh = "x".join(input("Please specify mesh: ").split())
+
+            if specify_mesh_type:
+            
+                mesh_type = input("Please specify mesh type (only Gamma and Monkhorst Pack): ").strip()
+                self.kpoints_mesh_type[key] = mesh_type
+
+            self.kpoints[key] = mesh
+
+
+            
             
     def construct_encut_directories(self,struct: Structure, path: Path,
                                     kpoints : str,kpoints_type : str,material_type : str):
@@ -92,6 +113,8 @@ class initial_encut_convergence():
                 base_dict=incar_settings,
                 ENCUT=i)
             
+            key = next(id for id,structure in self.structures.items() if structure == struct)
+            self.incar_settings_for_each_element[id] = incar_file
             incar_file.write_incar()
             
             kpoints_path =  encut_path / "KPOINTS"

@@ -263,5 +263,6 @@ def check_parity(kpoints) -> bool:
     for i, j in zip(l, l[1:]):
         if i % 2 != j % 2:
             return False
-
-    return True
+            break
+        else:
+            return True
