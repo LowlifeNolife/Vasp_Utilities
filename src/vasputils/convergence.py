@@ -79,8 +79,9 @@ class initial_encut_convergence():
             el_name = [el_name]
 
         for k in el_name:
+            print(f"Processing : {k}")
 
-            key = next(id for id, NAME in self.names.items() if k == NAME)
+            key = next(idx for idx, NAME in self.names.items() if k == NAME)
 
             print(f"KPOINTS mesh for {self.names[key]} is {self.kpoints[key]} and type is {self.kpoints_mesh_type[key]}.")
             mesh = "x".join(input("Please specify mesh: ").split())
@@ -119,9 +120,7 @@ class initial_encut_convergence():
             
             kpoints_path =  encut_path / "KPOINTS"
             kpts = list(map(int, kpoints.split("x")))
-            if not check_parity(kpoints):
-                kpts = [2*k for k in kpoints]
-            kp = Kpoints(comment = "Kpoints for this ENCUT convergence",
+            kp = Kpoints(comment = "Kpoints for this ENCUT convergence for" + str(struct.composition.reduced_formula),
                          style = kpoints_type,kpts = [kpts],
                          kpts_shift=(0,0,0))
             
