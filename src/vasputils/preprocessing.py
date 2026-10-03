@@ -100,7 +100,7 @@ def add_magmom_to_incar(incar : dict,magmom : int = 1) -> dict:
     """
     modify_settings = const.spin_polarisation.copy()
     modify_settings["MAGMOM"] = magmom
-    return {**incar, **modify_settings}
+    return {**incar, **modify_settings} ## EDIT THIS TO ADD THE MAGNITUDE OF THE INITIAL MAGMOMs. no need to commit this now.
 
 def modify_incar_for_material_type_relaxation(incar : dict, material_type : str) -> dict:
     """
@@ -242,8 +242,9 @@ def get_kpoints_mesh_type_and_structure(mp_id : str | list[str],mp_api_key :str,
         mesh_type = const.available_meshes[key][0]
     elif MK_Pack_override is True : 
         mesh_type = "Gamma"
-    else:
+    elif MK_Pack_override is False:
         mesh_type = "Monkhorst-Pack"
+    
     if len(const.available_ratios[key]) == 1:
         if const.available_ratios[key][0] == "real":
             mesh = "x".join(map(str,realspace_ratio))
