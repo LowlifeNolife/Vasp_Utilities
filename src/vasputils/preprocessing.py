@@ -158,7 +158,7 @@ class INCAR:
     def get_incar_settings(self) -> dict:
         return self.settings
     
-    def remove_incar_tags_manually(self,tags : str | list[str]) -> None:
+    def remove_incar_tags(self,tags : str | list[str]) -> None:
         if isinstance(tags,str):
             tags = [tags]
         flag = 1
@@ -216,7 +216,7 @@ class INCAR:
         self.settings[true_tag] = value
 
                           
-def get_kpoints_mesh_type_and_structure(mp_id : str | list[str],mp_api_key :str,MK_Pack_override : bool | None = True) -> tuple[Structure,dict,str]:
+def get_kpoints_mesh_type_and_structure(mp_id : str | list[str],mp_api_key :str,MK_Pack_option : bool | None = None) -> tuple[Structure,dict,str]:
         
     with MPRester(mp_api_key) as mpr:
         struct = mpr.get_structure_by_material_id(mp_id)
@@ -238,13 +238,17 @@ def get_kpoints_mesh_type_and_structure(mp_id : str | list[str],mp_api_key :str,
     lattice_data = analyzer.get_pearson_symbol()
     key = (lattice_data[0],lattice_data[1])
 
-    if len(const.available_meshes[key]) == 1:
-        mesh_type = const.available_meshes[key][0]
-    elif MK_Pack_override is True : 
-        mesh_type = "Gamma"
-    elif MK_Pack_override is False:
+    print("MK_Pack_option =", MK_Pack_option)
+    print("available =", const.available_meshes[key])
+
+    if MK_Pack_option and "Monkhorst-Pack" in const.available_meshes[key]:
         mesh_type = "Monkhorst-Pack"
-    
+
+    elif len(const.available_meshes[key]) == 1:
+        mesh_type = const.available_meshes[key][0]
+
+    else:
+        mesh_type = "Gamma"    
     if len(const.available_ratios[key]) == 1:
         if const.available_ratios[key][0] == "real":
             mesh = "x".join(map(str,realspace_ratio))
@@ -258,12 +262,9 @@ def get_kpoints_mesh_type_and_structure(mp_id : str | list[str],mp_api_key :str,
 
     return struct,mesh,mesh_type
 
-def check_parity(kpoints) -> bool:
-    l = [int(x) for x in kpoints.split("x")]
+def check_parity(kpoints: str) -> bool:
+    values = [int(x) for x in kpoints.split("x")]
 
-    for i, j in zip(l, l[1:]):
-        if i % 2 != j % 2:
-            return False
-            break
-        else:
-            return True
+    parity = values[0] % 2
+
+    return all(x % 2 == parity for x in values)

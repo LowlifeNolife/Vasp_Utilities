@@ -35,7 +35,7 @@ class initial_encut_convergence():
     """
     def __init__(self,materials_id : (str | list[str]),
                  encut_criteria : list[int],incar_tags : INCAR,
-                 mp_api_key : str,MK_Pack_override: bool = True) -> None:
+                 mp_api_key : str,MK_Pack_option: bool | None = None) -> None:
         
         if isinstance(materials_id,str):
             materials_id = [materials_id]
@@ -44,22 +44,65 @@ class initial_encut_convergence():
         self.encut_criteria = encut_criteria
         self.incar_tags = incar_tags
         self.mp_api_key = mp_api_key
-        self.MK_Pack_override = MK_Pack_override
+        self.MK_Pack_option = MK_Pack_option
         
         self.structures = {}
         self.kpoints = {}
         self.kpoints_mesh_type = {}
         self.material_types = {}
         self.names = {}
-        self.incar_settings_for_each_element = {}
-        
+        self.incar_settings_for_each_material = {}
+
+    def specify_incar_for_material(
+        self,
+        el_name: str,
+        remove_tags: str | list[str] | None = None,
+        update_tags: dict | None = None) -> None:
+
+        if not self.names:
+            raise RuntimeError(
+                "Material data has not been loaded. "
+                "Run get_material_data() first."
+            )
+
+        if el_name in self.names:
+            key = el_name
+        else:
+            key = next(
+                (
+                    material_id
+                    for material_id, name in self.names.items()
+                    if name == el_name
+                ),
+                None
+            )
+
+        if key is None:
+            raise ValueError(f"Material {el_name} not found.")
+
+        incar_settings = self.incar_tags.get_incar_settings().copy()
+
+        incar_settings = modify_incar_for_material_type_relaxation(
+            incar=incar_settings,
+            material_type=self.material_types[key]
+        )
+
+        incar = INCAR(base_dict=incar_settings)
+
+        if remove_tags is not None:
+            incar.remove_incar_tags(remove_tags)
+
+        if update_tags is not None:
+            incar.incar_update_dict(update_tags)
+
+        self.incar_settings_for_each_material[key] = incar
         
 
     def get_material_data(self):
         for material_id in self.materials_id:
             struct,mesh,mesh_type = get_kpoints_mesh_type_and_structure(material_id,
                                                                         self.mp_api_key,
-                                                                        self.MK_Pack_override
+                                                                        self.MK_Pack_option
                                                                         )
             
             self.structures[material_id] = struct
@@ -114,8 +157,22 @@ class initial_encut_convergence():
                 base_dict=incar_settings,
                 ENCUT=i)
             
-            key = next(id for id,structure in self.structures.items() if structure == struct)
-            self.incar_settings_for_each_element[id] = incar_file
+            key = next(
+                    material_id for material_id, structure in self.structures.items()
+                    if structure == struct
+                )
+
+            if key in self.incar_settings_for_each_material:
+                    incar_file = self.incar_settings_for_each_material[key]
+                    incar_file.path = encut_path / "INCAR"
+                    incar_file.incar_update_dict(modify_incar_for_material_type_relaxation({},material_type))
+                    incar_file.incar_update_direct(ENCUT=i)
+            else:
+                    incar_settings = modify_incar_for_material_type_relaxation(self.incar_tags.get_incar_settings(),material_type)
+
+                    incar_file = INCAR(path=encut_path,base_dict=incar_settings,ENCUT=i)
+            self.incar_settings_for_each_material.setdefault(key, incar_file)
+
             incar_file.write_incar()
             
             kpoints_path =  encut_path / "KPOINTS"
