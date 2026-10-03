@@ -120,7 +120,7 @@ class initial_encut_convergence():
             
             kpoints_path =  encut_path / "KPOINTS"
             kpts = list(map(int, kpoints.split("x")))
-            kp = Kpoints(comment = "Kpoints for this ENCUT convergence for" + str(struct.composition.reduced_formula),
+            kp = Kpoints(comment = "Kpoints for this ENCUT convergence for " + str(struct.composition.reduced_formula),
                          style = kpoints_type,kpts = [kpts],
                          kpts_shift=(0,0,0))
             
